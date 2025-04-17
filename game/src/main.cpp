@@ -1,6 +1,7 @@
 #include "raylib.h"
 #include "raymath.h"
 #include <stdio.h>
+#include <stack>
 
 #define CELL_SIZE 20
 
@@ -24,8 +25,6 @@ int main(void)
 
     RenderTexture gameboard = LoadRenderTexture(screenWidth, screenHeight);
 
-    char cursorTextBuffer[10];
-
     // Build a flipped rectangle the size of the split view to use for drawing later
     Rectangle splitScreenRect = { 0.0f, 0.0f, (float)gameboard.texture.width, (float)-gameboard.texture.height };
 
@@ -46,6 +45,9 @@ int main(void)
 
         EndMode2D();
     EndTextureMode();
+
+    std::stack<Vector2> newActiveCells;
+
     //--------------------------------------------------------------------------------------
 
     SetTargetFPS(60);               // Set our game to run at 60 frames-per-second
@@ -56,10 +58,22 @@ int main(void)
     {
         // Update
         //----------------------------------------------------------------------------------
-       //   if there's a click, check location and parse the active cell
+
+        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+            //  calculate cell's top left corner
+            Vector2 cellCoords = GetMousePosition();
+            cellCoords.x = cellCoords.x - ((int)cellCoords.x % CELL_SIZE);
+            cellCoords.y = cellCoords.y - ((int)cellCoords.y % CELL_SIZE);
+            newActiveCells.push(cellCoords);
+        }
         BeginTextureMode(gameboard);
         BeginMode2D(camera);
         //  draw active cells into texture
+        while (!newActiveCells.empty()) {
+            Vector2 currentCell = newActiveCells.top();
+            DrawRectangle(currentCell.x, currentCell.y, CELL_SIZE, CELL_SIZE, RED);
+            newActiveCells.pop();
+        }
         EndMode2D();
         EndTextureMode();
         //----------------------------------------------------------------------------------
@@ -67,7 +81,7 @@ int main(void)
         // Draw
         //----------------------------------------------------------------------------------
         BeginDrawing();
-            ClearBackground(BLACK);
+            ClearBackground(RAYWHITE);
             DrawTextureRec(gameboard.texture, splitScreenRect, (Vector2){ 0, 0 }, WHITE);
             DrawTextEx(GetFontDefault(), TextFormat("[%i|%i]", GetMouseX(), GetMouseY()), Vector2Add(GetMousePosition(), (Vector2){ -44, -24 }), 20, 2, BLACK);
         EndDrawing();
